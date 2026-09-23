@@ -44,8 +44,6 @@ class sprite():
         self.deceleration = deceleration
 
     def ChangeVelocity(self,axis,mult):
-        if axis == "Y":
-            mult *= -1
 
         axis = dict(X=0,Y=1)[axis]
         
@@ -64,7 +62,7 @@ class sprite():
 
     def Move(self):
         self.xPos = max(0,min(self.xPos+self.velocity[0],screenX))
-        self.yPos = max(0,min(self.yPos+self.velocity[1],screenY))
+        self.yPos = max(0,min(self.yPos-self.velocity[1],screenY))
 
     
 player = sprite(
