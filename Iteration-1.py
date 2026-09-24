@@ -93,7 +93,7 @@ enemy = sprite(
     dmg = None
     )
 
-EntityList = [player,enemy]
+spriteList = [player,enemy]
 
 run = True
 while run:  
@@ -127,7 +127,7 @@ while run:
     
     player.Move()
     
-    for Entity in EntityList:
+    for Entity in spriteList:
         Draw(Entity)
     
     pygame.display.flip()
