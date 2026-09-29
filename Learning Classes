@@ -1,0 +1,16 @@
+import random
+class Talkie:
+  class Talk:
+    def Greet(text=None):
+      print(text)
+    def Shout(text=None):
+      print(text+"!")
+    def Whisper(text=None):
+      print(text+"...")
+
+
+talkie = Talkie()
+functions = [Talkie.Talk.Greet,Talkie.Talk.Shout,Talkie.Talk.Whisper]
+while True:
+  text = input("\n")
+  functions[random.randint(0,2)](text)
