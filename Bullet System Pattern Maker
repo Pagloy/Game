@@ -1,0 +1,74 @@
+import pygame
+pygame.init()
+
+clock = pygame.time.Clock()
+
+screenX,screenY = 500,500
+bgColour = (45,45,45)
+
+screen = pygame.display.set_mode((screenX,screenY))
+
+BulletScreen = []
+
+class Bullet():
+    def __init__(self,x,y,sizeX,sizeY,velocity):
+        self.x = x
+        self.y = y
+
+        self.sizeX = sizeX
+        self.sizeY = sizeY
+        
+        self.velocity = velocity
+    
+    def Draw():
+        pygame.draw.rect(
+
+            xpos,ypos,xsize,ysize = x,y,sizeX,sizeY
+
+            screen,
+            (255,0,0),
+            (xpos - xsize/2, ypos - ysize/2,
+            xsize,ysize)
+        )
+
+
+
+
+def Line(BulletCount,speed,acceleration=None):
+    targetpos = (screenX/2,screenY - 100)
+
+    newBullet = Bullet(
+        x = screenX/2,
+        y = 0
+        sizeX = 50,
+        sizeY = 50,
+        velocity = 
+    )
+
+moves = [Line,Spiral,Star]
+
+
+
+
+
+running = True
+while running:
+    clock.tick(60)
+    screen.fill(bgColour)
+
+    pressedkeys = pygame.key.get_pressed()
+    
+    
+
+
+    pygame.display.flip()
+
+
+
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+pygame.quit()
+quit()
+            
