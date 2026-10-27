@@ -28,13 +28,21 @@ class Sprite:
         self.yvelocity = 0
         self.xacceleration = 0
         self.yacceleration = 0
+        
         self.health = 999
         self.dmg = 0
+        
+        
+        self.colour = (255,0,0)
+        self.transparency = 0
 
         spritelist.append(self)
+        
 
         
-            
+    def Remove(self):
+        
+        spritelist.remove(self)
         
     def ChangeVelocity(self,xvelocity,yvelocity):
         self.xvelocity = xvelocity
@@ -48,6 +56,10 @@ class Sprite:
         self.health = health
         self.dmg = dmg
 
+    def ChangeColourTransparency(self,colour,transparency):
+        self.colour = colour
+        self.transparency = transparency
+
     def PhysicsStep(self):
         self.xpos += self.xvelocity
         self.xvelocity += self.xacceleration
@@ -55,22 +67,29 @@ class Sprite:
         self.ypos += self.yvelocity
         self.yvelocity += self.yacceleration
 
+        if hasattr(self,"lifetime"):
+            self.lifetime -= 1
+            if self.lifetime ==0:
+                self.Remove()
+
+        
+
     def Draw(self):
         
-        pygame.draw.rect(screen,(255,0,0),(self.xpos -self.xsize//2,
+        pygame.draw.rect(screen,self.colour,(self.xpos -self.xsize//2,
                                            self.ypos - self.ysize//2,
                                            self.xsize,
                                            self.ysize))
-    def Remove(self):
-        
-        spritelist.remove(self)
-        
+
         
         
 
 class Bullet(Sprite):
     def __init__(self,xpos,ypos,xsize,ysize):
         Sprite.__init__(self,xpos,ypos,xsize,ysize)
+    def ChangeLifetime(self,lifetime):
+        self.lifetime = lifetime
+
     
 class Enemy(Sprite):
     def __init__(self,xpos,ypos,xsize,ysize):
@@ -101,6 +120,7 @@ class Enemy(Sprite):
             xvelocity = speed*basespeedmult * random.randint(-1,1),
             yvelocity = speed*basespeedmult * random.randint(-1,1)
             )
+        b.ChangeLifetime(150)
 
     def AttackStep(self):
         self.passedframes += 1
@@ -114,11 +134,9 @@ class Enemy(Sprite):
 evilboy = Enemy(
 xpos = screenx//2,
 ypos = screeny//2,
-
 xsize = 50,
 ysize =50
 )
-
 evilboy.SetUpAttackMetaData(
     [
     dict(attackname = "LineAttack",count = 25,interval = 0.1*framerate,cd = 5*framerate),
@@ -126,7 +144,14 @@ evilboy.SetUpAttackMetaData(
     ]
     )
 
-
+player = Sprite(
+    xpos = screenx//2,
+    ypos = screeny-50,
+    xsize = 20,
+    ysize =20
+    )
+player.ChangeHealthDmg(100,0)
+player.ChangeColourTransparency( (0,0,255),0 )
 
     
 
@@ -140,168 +165,7 @@ while running:
 
     screen.fill(bgcolour)
 
-    for sprite in spritelist:
-        sprite.PhysicsStep()
-        
-
-        if hasattr(sprite,"AttackStep"):
-            sprite.AttackStep()
-
-            
-        sprite.Draw()
-
-
-
-
-    pygame.display.flip()
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-pygame.quit()
-quit()
-import pygame, random
-
-screenx,screeny = 500,500
-bgcolour = (10,10,10)
-
-framerate = 120
-basespeedmult = framerate/480
-
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((screenx,screeny))
-screen.fill(bgcolour)
-
-spritelist = []
-
-
-
-
-
-class Sprite:
-    def __init__(self,xpos,ypos,xsize,ysize):
-        self.xpos = xpos
-        self.ypos = ypos
-
-        self.xsize = xsize
-        self.ysize = ysize
-
-        self.xvelocity = 0
-        self.yvelocity = 0
-        self.xacceleration = 0
-        self.yacceleration = 0
-        self.health = 999
-        self.dmg = 0
-
-        spritelist.append(self)
-
-        
-            
-        
-    def ChangeVelocity(self,xvelocity,yvelocity):
-        self.xvelocity = xvelocity
-        self.yvelocity = yvelocity
-        
-    def ChangeAcceleration(self,xacceleration,yacceleration):
-        self.xacceleration = xacceleration
-        self.yacceleration = yacceleration
-        
-    def ChangeHealthDmg(self,health,dmg):
-        self.health = health
-        self.dmg = dmg
-
-    def PhysicsStep(self):
-        self.xpos += self.xvelocity
-        self.xvelocity += self.xacceleration
-        
-        self.ypos += self.yvelocity
-        self.yvelocity += self.yacceleration
-
-    def Draw(self):
-        
-        pygame.draw.rect(screen,(255,0,0),(self.xpos -self.xsize//2,
-                                           self.ypos - self.ysize//2,
-                                           self.xsize,
-                                           self.ysize))
-    def Remove(self):
-        
-        spritelist.remove(self)
-        
-        
-        
-
-class Bullet(Sprite):
-    def __init__(self,xpos,ypos,xsize,ysize):
-        Sprite.__init__(self,xpos,ypos,xsize,ysize)
-    
-class Enemy(Sprite):
-    def __init__(self,xpos,ypos,xsize,ysize):
-        Sprite.__init__(self,xpos,ypos,xsize,ysize)
-
-    def ChooseRandomAttack(self,attacklist):
-        self.currentattack = random.choice(attacklist)
-
-        self.attackname = self.currentattack["attackname"]
-        self.attackcount = self.currentattack["count"]
-        self.attackinterval = self.currentattack["interval"]
-        self.attackcd = self.currentattack["cd"]
-        self.passedframes = 0
-    
-    def SetUpAttackMetaData(self,attacklist):
-        self.attacklist = attacklist
-        self.ChooseRandomAttack(attacklist)
-        
-                
-    def LineAttack(self,speed=5):            
-        b = Bullet(
-            xpos = self.xpos,
-            ypos = self.ypos,
-            xsize = 15,
-            ysize = 15
-            )
-        b.ChangeVelocity(
-            xvelocity = speed*basespeedmult * random.randint(-1,1),
-            yvelocity = speed*basespeedmult * random.randint(-1,1)
-            )
-
-    def AttackStep(self):
-        self.passedframes += 1
-        if self.passedframes > (self.attackcount*self.attackinterval) + self.attackcd:
-            self.ChooseRandomAttack(self.attacklist)
-            pass
-        if self.passedframes <= (self.attackcount*self.attackinterval) and self.passedframes % self.attackinterval == 0:
-            if self.attackname == "LineAttack":
-                self.LineAttack()
-
-evilboy = Enemy(
-xpos = screenx//2,
-ypos = screeny//2,
-
-xsize = 50,
-ysize =50
-)
-
-evilboy.SetUpAttackMetaData(
-    [
-    dict(attackname = "LineAttack",count = 25,interval = 0.1*framerate,cd = 5*framerate),
-    dict(attackname="Wait",count = 0,interval = 1,cd = 0)
-    ]
-    )
-
-
-
-    
-
-running = True
-
-
-
-while running:
-
-    clock.tick(framerate)
-
-    screen.fill(bgcolour)
 
     for sprite in spritelist:
         sprite.PhysicsStep()
