@@ -1,4 +1,4 @@
-import pygame, random
+import pygame,random,math
 
 screenx,screeny = 500,500
 bgcolour = (10,10,10)
@@ -31,9 +31,11 @@ class Sprite:
         
         self.health = 999
         self.dmg = 0
+        self.iframedmg = 0
+        self.iframes = 0
         
         
-        self.colour = (255,0,0)
+        self.colour = (100,0,0)
         self.transparency = 0
 
         spritelist.append(self)
@@ -43,6 +45,8 @@ class Sprite:
     def Remove(self):
         
         spritelist.remove(self)
+    
+
         
     def ChangeVelocity(self,xvelocity,yvelocity):
         self.xvelocity = xvelocity
@@ -51,10 +55,11 @@ class Sprite:
     def ChangeAcceleration(self,xacceleration,yacceleration):
         self.xacceleration = xacceleration
         self.yacceleration = yacceleration
-        
-    def ChangeHealthDmg(self,health,dmg):
+    def ChangeHealth(self,health):
         self.health = health
+    def ChangeDmgIframeDmg(self,dmg,iframedmg):
         self.dmg = dmg
+        self.iframedmg = iframedmg
 
     def ChangeColourTransparency(self,colour,transparency):
         self.colour = colour
@@ -64,29 +69,47 @@ class Sprite:
         self.xpos += self.xvelocity
         self.xvelocity += self.xacceleration
         
-        self.ypos += self.yvelocity
+        self.ypos -= self.yvelocity
         self.yvelocity += self.yacceleration
 
         if hasattr(self,"lifetime"):
             self.lifetime -= 1
             if self.lifetime ==0:
-                self.Remove()
+                self.Remove()   
+        if self.iframes > 0:
+            self.iframes -= 1
 
+    def CheckForCollisions(self):
+        if self.iframes >0:
+            return
         
-
+        for sprite in spritelist:
+            if sprite == self:
+                continue
+            elif self.xpos + self.xsize//2 > sprite.xpos - sprite.xsize//2 and self.xpos - self.xsize//2 < sprite.xpos + sprite.xsize//2:
+                if self.ypos + self.ysize//2 > sprite.ypos - sprite.ysize//2 and self.ypos - self.ysize//2 < sprite.ypos + sprite.ysize//2:
+                    if sprite.dmg != 0:
+                        self.iframes += sprite.iframedmg *framerate
+                        self.health -= sprite.dmg
+                        print(self.health)
+                        if self.health <= 0:
+                            self.ChangeColourTransparency((255,0,0),0)
+                        return 
+                    
     def Draw(self):
-        
-        pygame.draw.rect(screen,self.colour,(self.xpos -self.xsize//2,
-                                           self.ypos - self.ysize//2,
-                                           self.xsize,
-                                           self.ysize))
 
-        
-        
+        if self.iframes ==0 or self.iframes%2 ==0: 
+            pygame.draw.rect(screen,self.colour,(self.xpos -self.xsize//2,
+                                               self.ypos - self.ysize//2,
+                                               self.xsize,
+                                               self.ysize))       
 
 class Bullet(Sprite):
     def __init__(self,xpos,ypos,xsize,ysize):
         Sprite.__init__(self,xpos,ypos,xsize,ysize)
+        Sprite.ChangeDmgIframeDmg(self,5,.5)
+        Sprite.ChangeColourTransparency(self,(150,150,0),0)
+        
     def ChangeLifetime(self,lifetime):
         self.lifetime = lifetime
 
@@ -96,12 +119,13 @@ class Enemy(Sprite):
         Sprite.__init__(self,xpos,ypos,xsize,ysize)
 
     def ChooseRandomAttack(self,attacklist):
-        self.currentattack = random.choice(attacklist)
 
+        self.currentattack = random.choice(attacklist)
+        
         self.attackname = self.currentattack["attackname"]
         self.attackcount = self.currentattack["count"]
-        self.attackinterval = self.currentattack["interval"]
-        self.attackcd = self.currentattack["cd"]
+        self.attackinterval = self.currentattack["interval"] *framerate
+        self.attackcd = self.currentattack["cd"] *framerate
         self.passedframes = 0
     
     def SetUpAttackMetaData(self,attacklist):
@@ -109,18 +133,117 @@ class Enemy(Sprite):
         self.ChooseRandomAttack(attacklist)
         
                 
-    def LineAttack(self,speed=5):            
+    def StarAttack(self,speed):
+        
+        r = 16
+        for c in range(r):
+            angle = (360/r) * (c+1)
+            if (self.passedframes / self.attackinterval)%2==0:
+                angle += 180/r
+            x = math.cos(math.radians(angle))
+            y = math.sin(math.radians(angle))
+            
+            b = Bullet(
+                xpos = self.xpos,
+                ypos = self.ypos,
+                xsize = 10,
+                ysize = 10
+                )
+            b.ChangeVelocity(
+                xvelocity = speed*basespeedmult * x,
+                yvelocity = speed*basespeedmult * y
+                )
+            b.ChangeLifetime(1000)
+
+            if random.randint(1,10) == 10:
+                b.ChangeDmgIframeDmg(-10,0)
+                b.ChangeColourTransparency((0,255,0),0)
+            
+    def FountainAttack(self):
+                    
+            b = Bullet(
+                xpos = self.xpos,
+                ypos = self.ypos,
+                xsize = 15,
+                ysize = 15
+                )
+            b.ChangeVelocity(
+                xvelocity = basespeedmult * random.randint(-10,10) ,
+                yvelocity = basespeedmult * random.randint(10,20)
+                )
+            b.ChangeAcceleration(
+                xacceleration = 0,
+                yacceleration = -.05
+                )
+            b.ChangeLifetime(500)
+    def SprayAttack(self,speed):
+        
+
+
+        dx = player.xpos + (player.xvelocity*framerate*0) - self.xpos
+        dy = player.ypos - (player.yvelocity*framerate*0) - self.ypos
+        hyp = math.sqrt(dx**2 + dy**2)
+
+        
+        x = dx*speed / hyp 
+        y = dy*speed / hyp 
+       
         b = Bullet(
             xpos = self.xpos,
             ypos = self.ypos,
-            xsize = 15,
-            ysize = 15
+            xsize = 5,
+            ysize = 5
             )
         b.ChangeVelocity(
-            xvelocity = speed*basespeedmult * random.randint(-1,1),
-            yvelocity = speed*basespeedmult * random.randint(-1,1)
+            xvelocity = basespeedmult * x ,
+            yvelocity = basespeedmult * -y
             )
-        b.ChangeLifetime(150)
+        b.ChangeLifetime(1000)
+    def LandmineAttack(self):
+        x = random.randint(0,screenx-50)
+        y = random.randint(0,screeny-50)
+
+               
+        b = Bullet(
+            xpos = x,
+            ypos = y,
+            xsize = 50,
+            ysize = 50
+            )
+        b.ChangeLifetime(500)
+        b.ChangeDmgIframeDmg(15,.5)
+    def LaserAttack(self,lasercount,totalangle):
+        currentatkcount = self.passedframes / self.attackinterval
+
+        ddx = totalangle /(9/10)*self.attackcount
+
+        
+        
+        if currentatkcount > self.attackcount/10:
+            dx = 6 * (currentatkcount - self.attackcount/10 )
+            
+        else:
+            dx = 0
+        dy = dx
+
+        for laser in range(lasercount):
+            angle = 360*laser/lasercount
+
+            x = math.cos(math.radians(angle+dx)) *7
+            y = math.sin(math.radians(angle+dy)) *7
+            
+            b = Bullet(
+                xpos = self.xpos,
+                ypos = self.ypos,
+                xsize = 5,
+                ysize = 5
+                )
+            b.ChangeVelocity(
+                xvelocity = basespeedmult * x ,
+                yvelocity = basespeedmult * -y
+                )
+            b.ChangeLifetime(2000)
+            
 
     def AttackStep(self):
         self.passedframes += 1
@@ -128,8 +251,16 @@ class Enemy(Sprite):
             self.ChooseRandomAttack(self.attacklist)
             pass
         if self.passedframes <= (self.attackcount*self.attackinterval) and self.passedframes % self.attackinterval == 0:
-            if self.attackname == "LineAttack":
-                self.LineAttack()
+            if self.attackname == "StarAttack":
+                self.StarAttack(speed=self.currentattack["speed"])
+            if self.attackname == "FountainAttack":
+                self.FountainAttack()
+            if self.attackname == "SprayAttack":
+                self.SprayAttack(speed=self.currentattack["speed"])
+            if self.attackname == "LandmineAttack":
+                self.LandmineAttack()
+            if self.attackname == "LaserAttack":
+                self.LaserAttack(lasercount=self.currentattack["lasercount"],totalangle=self.currentattack["totalangle"])            
 
 evilboy = Enemy(
 xpos = screenx//2,
@@ -139,8 +270,11 @@ ysize =50
 )
 evilboy.SetUpAttackMetaData(
     [
-    dict(attackname = "LineAttack",count = 25,interval = 0.1*framerate,cd = 5*framerate),
-    dict(attackname="Wait",count = 0,interval = 1,cd = 0)
+    dict(attackname = "StarAttack",count = 10,interval = .35,cd = 2,speed = 5),
+    dict(attackname="FountainAttack",count = 25,interval = .1,cd = 0),
+    dict(attackname="LandmineAttack",count = 5,interval = .1, cd = 0),
+    dict(attackname="SprayAttack",count=100, interval=.1, cd=0, speed=10),
+    dict(attackname="LaserAttack",count=150,interval=.1,cd=1,lasercount=4,totalangle=360),
     ]
     )
 
@@ -150,7 +284,7 @@ player = Sprite(
     xsize = 20,
     ysize =20
     )
-player.ChangeHealthDmg(100,0)
+player.ChangeHealth(100)
 player.ChangeColourTransparency( (0,0,255),0 )
 
     
@@ -160,8 +294,27 @@ running = True
 
 
 while running:
+    
 
     clock.tick(framerate)
+
+    pressedkeys = pygame.key.get_pressed()
+
+    if pressedkeys[pygame.K_w] or pressedkeys[pygame.K_UP]:
+        player.ChangeVelocity(0,1)
+    elif pressedkeys[pygame.K_s] or pressedkeys[pygame.K_DOWN]:
+        player.ChangeVelocity(0,-1)
+    else:
+        player.ChangeVelocity(0,0)
+
+    if pressedkeys[pygame.K_a] or pressedkeys[pygame.K_LEFT]:
+        player.ChangeVelocity(-1,player.yvelocity)
+    elif pressedkeys[pygame.K_d] or pressedkeys[pygame.K_RIGHT]:
+        player.ChangeVelocity(1,player.yvelocity)
+    else:
+        player.ChangeVelocity(0,player.yvelocity)
+    
+    
 
     screen.fill(bgcolour)
 
@@ -177,7 +330,7 @@ while running:
             
         sprite.Draw()
 
-
+    player.CheckForCollisions()
 
 
     pygame.display.flip()
